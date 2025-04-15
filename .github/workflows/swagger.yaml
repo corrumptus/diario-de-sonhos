@@ -1,0 +1,41 @@
+name: Swagger UI on Github Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-swagger-spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: latest
+      - run: npm ci
+      - run: npm run generate-openAPI
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spec-file
+          path: openapi.json
+
+  deploy:
+    needs: generate-swagger-spec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download swagger.json
+        uses: actions/download-artifact@v4
+        with:
+          name: spec-file
+      - name: Generate Swagger UI
+        uses: Legion2/swagger-ui-action@v1
+        with:
+          output: swagger-ui
+          spec-file: openapi.json
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: swagger-ui
